@@ -3,9 +3,9 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 
 
-class Hodgkin_Huxley(object):
+class HodgkinHuxley(object):
 
-	'''
+'''
 Hodgkin-Huxley Model
 
 
@@ -24,17 +24,17 @@ Hodgkin-Huxley Model
 	Equations:
 
 		# Voltage-Current relationship
-		C_m( dV( t)/dt) = -sum([I( t,V) for i in range( time)])
+		C_m(dV( t)/dt) = -sum([I( t,V) for i in range( time)])
 
 		# Ohm's Law
-		I( t,V) = g(t,V) * (V - V_eq)
+		I(t,V) = g(t,V) * (V - V_eq)
 
 		# Conductance
-		g( t,V) = g_bar * m( t,V)**p * h( t,V)**q
+		g(t,V) = g_bar * m( t,V)**p * h( t,V)**q
 
 		# Fractions ( m or h, but used m for example)
-		dm( t,V)/dt = alpha_m( V)*( 1 - m) - beta_m( V)*m, where alpha & beta define gate fractions.
-	'''
+		dm(t,V)/dt = alpha_m( V)*( 1 - m) - beta_m( V)*m, where alpha & beta define gate fractions.
+'''
 
 
 	# Parameters.
@@ -49,10 +49,13 @@ Hodgkin-Huxley Model
 	E_L = -54.387
 
 
+	# Time interval to integrate over.
+	t = np.arange(0.0, 450.0, 0.01)
+
 	# Equations.
 	# Channel Gating Kinetics.
 	def alpha_m(self, V):
-		alpha = 0.1*(V + 40.0)/( 1.0 - np.exp( -(V+40.0)/10.0))
+		alpha = 0.1*(V + 40.0)/(1.0 - np.exp( -(V+40.0)/10.0))
 
 		return alpha
 
@@ -76,12 +79,15 @@ Hodgkin-Huxley Model
 
 		return alpha
 
+	def beta_n(self, V):
+
+		return 0.125*np.exp(-(V+65) / 80.0)
+
 
 	# Membrane Currents.
 	def I_Na(self, V, m, h):
-		I = self.g_Na * m**3 * h * (V - self.E_Na)
 
-		return I
+		return self.g_Na * m**3 * h * (V - self.E_Na)
 
 	def I_K(self, V, n):
 		I = self.g_K * n**4 * (V - self.E_K)
@@ -100,10 +106,9 @@ Hodgkin-Huxley Model
 
 		return I
 
-	# Time interval to integrate over.
-	t = np.linspace(0.0, 400.0, 0.1)
 
-	def dALLdt(X, t, self):
+	def dALLdt(self, X, t):
+
 		V, m, h, n = X
 
 		# Calculate membrane potential & activation variables.
@@ -117,12 +122,9 @@ Hodgkin-Huxley Model
 
 	def main(self):
 		# Demo for model neuron.
-		X = odeint(self.dALLdt, [-65, 0.05, 0.6, 0.32], self.t)
+		X = odeint(self.dALLdt, [-65.0, 0.05, 0.6, 0.32], self.t)
 
-		V = X[:, 0]
-		m = X[:, 1]
-		h = X[:, 2]
-		n = X[:, 3]
+		V, m, h, n = X[:, 0], X[:, 1], X[:, 2], X[:, 3]
 
 		i_na = self.I_Na(V, m, h)
 		i_k  = self.I_K(V, n)
@@ -131,37 +133,39 @@ Hodgkin-Huxley Model
 		plt.figure()
 
 		plt.subplot(4,1,1)
-		plt.title('Hodgkin-Huxley Model')
+		plt.title('Hodgkin-Huxley Neuron')
 		plt.plot(self.t, V, 'k')
 		plt.ylabel('V (mV)')
 
 		plt.subplot(4,1,2)
-		plt.plot(self.t, i_na, 'c', label='I_Na')
-		plt.plot(self.t, i_k, 'y', label='I_K')
-		plt.plot(self.t, i_l, 'm', label='I_L')
+		plt.plot(self.t, i_na, 'c', label='$I_{Na}$')
+		plt.plot(self.t, i_k, 'y', label='$I_{K}$')
+		plt.plot(self.t, i_l, 'm', label='$I_{L}$')
 		plt.ylabel('Current')
 		plt.legend()
 
 		plt.subplot(4,1,3)
-		plt.plot(self.t, m, 'r-', label='m')
-		plt.plot(self.t, h, 'g-', label='h')
-		plt.plot(self.t, n, 'b-', label='n')
+		plt.plot(self.t, m, 'r', label='m')
+		plt.plot(self.t, h, 'g', label='h')
+		plt.plot(self.t, n, 'b', label='n')
 		plt.ylabel('Gating Value')
 		plt.legend()
 
 		plt.subplot(4,1,4)
 		i_inj_values = [self.I_inj(t) for t in self.t]
-		plt.plot(self.t, i_inj_values, 'k')
 		plt.xlabel('t (ms)')
-		plt.ylabel('I_inj (muA/cm^2)')
+		plt.ylabel('$I_{inj}$ ($\\mu{A}/cm^2$)')
 		plt.ylim(-1, 40)
 
 		plt.show()
 
 
 if __name__ == '__main__':
-	runner = Hodgkin_Huxley()
+	runner = HodgkinHuxley()
 	runner.main()
+
+
+
 
 
 
